@@ -13,7 +13,14 @@ export async function askGroq(question: string, meetingContext: string) {
     }),
   })
 
-  const data = await response.json() as { choices?: { message?: { content?: string } }[]; error?: string }
-  if (!response.ok) throw new Error(data.error || 'Groq request failed')
+  const data = await response.json() as { choices?: { message?: { content?: string } }[]; error?: unknown }
+  if (!response.ok) {
+    const error = typeof data.error === 'string'
+      ? data.error
+      : data.error && typeof data.error === 'object' && 'message' in data.error && typeof data.error.message === 'string'
+        ? data.error.message
+        : 'Groq request failed'
+    throw new Error(error)
+  }
   return data.choices?.[0]?.message?.content || 'Rally could not find an answer in this meeting.'
 }
